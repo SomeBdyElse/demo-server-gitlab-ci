@@ -1,0 +1,55 @@
+version: "3"
+
+networks:
+  # definition of the traefik_public network
+  public:
+    driver: overlay
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.1.0.0/16
+      
+services:
+  traefik:
+    image: traefik:v1.7
+    command: --api 
+      --docker 
+      --docker.swarmmode 
+      --docker.watch 
+      --docker.domain=traefik 
+      --logLevel=INFO 
+      --entryPoints="Name:https Address::443 TLS"
+      --entryPoints="Name:http Address::80 Redirect.EntryPoint:https"
+      --acme=true 
+      --acme.email=office@hanneslau.de 
+      --acme.storage="acme.json" 
+      --acme.entrypoint=https 
+      --acme.acmelogging=true 
+      --acme.dnschallenge.provider=godaddy
+      --acme.dnschallenge.delayBeforeCheck=90
+      --acme.domains='*.$DEMO_SERVER_HOSTNAME'
+      --defaultentrypoints=https
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefik.toml
+    networks:
+      - public
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+      labels:
+        # add http routing for own dashboard on port 8080
+        - "traefik.backend=traefik_dashboard"
+        - "traefik.port=8080"
+        - "traefik.frontend.rule=Host: traefik.$DEMO_SERVER_HOSTNAME"
+        - "traefik.docker.network=traefik_public"
+        - "traefik.frontend.auth.basic=$admin_auth_string"
+    environment: 
+      - "GODADDY_API_KEY=$GODADDY_API_KEY"
+      - "GODADDY_API_SECRET=$GODADDY_API_SECRET"

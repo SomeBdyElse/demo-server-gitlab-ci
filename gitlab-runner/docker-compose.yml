@@ -1,0 +1,41 @@
+version: "3.6"
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:alpine
+    environment:
+      PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      REGISTRATION_TOKEN: ${REGISTRATION_TOKEN}
+      CI_SERVER_URL: ${CI_SERVER_URL}
+      REGISTER_LOCKED: "false"
+      REGISTER_RUN_UNTAGGED: "true"
+      RUNNER_TAG_LIST: docker
+      RUNNER_EXECUTOR: docker
+      REGISTER_NON_INTERACTIVE: "true"
+      DOCKER_VOLUMES: /var/run/docker.sock:/var/run/docker.sock
+      DOCKER_PRIVILEGED: "true"
+      DOCKER_IMAGE: docker:stable
+    command:
+      - |
+          gitlab-runner register
+          gitlab-runner run
+    entrypoint: /bin/sh -c
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "gitlab-runner-etc:/etc/gitlab-runner"
+      - "gitlab-runner-home:/home/gitlab-runner"
+    networks:
+      - core
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+    
+volumes:
+  gitlab-runner-etc:
+    external: true
+  gitlab-runner-home:
+    external: true
+  
+    
+networks:
+  core:

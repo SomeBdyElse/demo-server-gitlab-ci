@@ -1,0 +1,21 @@
+version: '3'
+
+networks:
+  traefik_public:
+    external:
+      name: traefik_public
+
+services:
+  registry:
+    image: registry:2
+    networks:
+      - traefik_public
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - "traefik.port=5000"
+        - "traefik.docker.network=traefik_public"
+        - "traefik.frontend.rule=Host: registry.$DEMO_SERVER_HOSTNAME"
+        - "traefik.frontend.auth.basic=$admin_auth_string"
+    restart: unless-stopped

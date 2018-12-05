@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# SSH Connection to Swarm manager
+[ -z $SWARM_MANAGER_SSH_USER ] && echo "Need to set SWARM_MANAGER_SSH_USER in your environment" && exit 1;
+[ -z $SWARM_MANAGER_SSH_HOST ] && echo "Need to set SWARM_MANAGER_SSH_HOST in your environment" && exit 1;
+[ -z $SWARM_MANAGER_SSH_PORT ] && export SWARM_MANAGER_SSH_PORT=22;
+
+# Access to traefik, portainer, etc.
 [ -z $DEMO_SERVER_HOSTNAME ] && echo "Need to set DEMO_SERVER_HOSTNAME in your environment" && exit 1;
 [ -z $ADMIN_AUTH_USERNAME ] && echo "Need to set ADMIN_AUTH_USERNAME in your environment" && exit 1;
 [ -z $ADMIN_AUTH_PASSWORD ] && echo "Need to set ADMIN_AUTH_PASSWORD in your environment" && exit 1;
@@ -12,22 +19,22 @@
 [ -z $REGISTRATION_TOKEN ] && echo "Need to set REGISTRATION_TOKEN in your environment" && exit 1;
 
 
+# Check SSH connection
+echo "Check SSH connection"
+status=$(ssh -o BatchMode=yes -o ConnectTimeout=5 ${SWARM_MANAGER_SSH_USER}@${SWARM_MANAGER_SSH_HOST} -p ${SWARM_MANAGER_SSH_PORT} echo ssh_ok)
+if [[ $status == ssh_ok ]] ; then
+  echo "SSH connection is ok"
+elif [[ $status == "Permission denied"* ]] ; then
+  echo "SSH Authentication error"
+else
+  echo "SSH connection error"
+fi
 
-# ! Deploy swarm master
-export SWARM_MASTER_IP=`dig +short $DEMO_SERVER_HOSTNAME |tail -n 1`
 
-docker-machine create \
-	--driver generic \
-	--generic-ip-address=$SWARM_MASTER_IP \
-	--generic-ssh-key ~/.ssh/id_rsa \
-	--engine-storage-driver overlay \
-	$DEMO_SERVER_HOSTNAME
+# Connect to remote docker host
+export DOCKER_HOST=ssh://${SWARM_MANAGER_SSH_USER}@${SWARM_MANAGER_SSH_HOST}:${SWARM_MANAGER_SSH_PORT}
 
-eval $(docker-machine env $DEMO_SERVER_HOSTNAME)
-
-echo "The master node was restarted which probably broke all overlay networks. Please restart all worker nodes in your docker swarm. Press key when done."
-read
-
+# Get BasicAuth string to setup portainer and traefik access control
 export admin_auth_string=$(docker run --rm --entrypoint htpasswd registry:2 -Bbn "$ADMIN_AUTH_USERNAME" "$ADMIN_AUTH_PASSWORD")
 
 # Deploy load balancer
@@ -35,7 +42,7 @@ cd traefik
 ./install.sh
 cd ..
 
-echo "Wait for traefik_public network to appear"
+echo "Wait 20secs for traefik_public network to appear"
 sleep 20
 
 # Install a docker registry
@@ -52,15 +59,3 @@ cd ..
 cd gitlab-runner
 ./install.sh
 cd ..
-
-echo "DEMO_SERVER_CACERT"
-cat $DOCKER_CERT_PATH/ca.pem
-echo ""
-
-echo "DEMO_SERVER_CERT"
-cat $DOCKER_CERT_PATH/cert.pem
-echo ""
-
-echo "DEMO_SERVER_KEY"
-cat $DOCKER_CERT_PATH/key.pem
-echo ""

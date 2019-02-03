@@ -13,6 +13,7 @@
 # Godaddy connection for traefik SSL
 [ -z $GODADDY_API_KEY ] && echo "Need to set GODADDY_API_KEY in your environment" && exit 1;
 [ -z $GODADDY_API_SECRET ] && echo "Need to set GODADDY_API_SECRET in your environment" && exit 1;
+[ -z $ACME_ACCOUNT_EMAIL ] && echo "Need to set ACME_ACCOUNT_EMAIL in your environment" && exit 1;
 
 # GitLab connection for gitlab runners
 [ -z $CI_SERVER_URL ] && echo "Need to set CI_SERVER_URL in your environment" && exit 1;

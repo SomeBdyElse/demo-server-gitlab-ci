@@ -21,7 +21,7 @@ services:
       --entryPoints="Name:https Address::443 TLS"
       --entryPoints="Name:http Address::80 Redirect.EntryPoint:https"
       --acme=true 
-      --acme.email=office@hanneslau.de 
+      --acme.email=$ACME_ACCOUNT_EMAIL
       --acme.storage="acme.json" 
       --acme.entrypoint=https 
       --acme.acmelogging=true 

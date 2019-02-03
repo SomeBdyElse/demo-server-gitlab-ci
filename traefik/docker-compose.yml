@@ -27,7 +27,7 @@ services:
       --acme.acmelogging=true 
       --acme.dnschallenge.provider=godaddy
       --acme.dnschallenge.delayBeforeCheck=90
-      --acme.domains='*.$DEMO_SERVER_HOSTNAME'
+      --acme.domains=*.$DEMO_SERVER_HOSTNAME,$DEMO_SERVER_HOSTNAME
       --defaultentrypoints=https
     ports:
       - "80:80"
@@ -35,6 +35,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /dev/null:/traefik.toml
+      - /etc/traefik/acme.json:/acme.json
     networks:
       - public
     deploy:
